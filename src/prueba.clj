@@ -1,3 +1,4 @@
+
 (ns netmove.prueba
   (:use (clojure.contrib graph)))
 
@@ -12,19 +13,21 @@
   (some #(= e %) coll))
 
 (def g (struct weighted-graph
-               ['A 'B 'C 'D 'E]
+               ['A 'B 'C 'D 'E 'F]
                { ; Neighbors
                 'A ['B 'C 'D]
                 'B ['C]
-                'C ['A 'D]
+                'C ['A 'D 'F]
                 'D ['C]
-                'E []}
+                'E []
+                'F ['D]}
                { ; Weights
                 'A {'B 56 'C 6 'D 2}
                 'B {'C -3}
-                'C {'A -100 'D 50}
+                'C {'A -100 'D 50 'F 60}
                 'D {'C 43}
-                'E {}}
+                'E {}
+                'F {'D -3}}
                1000000))
 
 (defn get-weight [g i j]

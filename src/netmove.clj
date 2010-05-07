@@ -23,7 +23,7 @@
   (let [wi (get (weights g) i {})]
     (get wi j (default-weight g))))
 
-(def get-weight gw)
+(def gw get-weight)
 
 (defn get-weight-by-ordinal
   "Es como get-weight sólo que en vez del arco (i,j) se le pasa el ordinal de i y de j."
@@ -58,6 +58,15 @@
 
 ; alias para get-node-by-num
 (def gnbn get-node-by-num)
+
+(defn get-number-of-node
+  "Devuélve el índice del nodo i en g."
+  [g i]
+  (let [nds (nodes g)
+        n2i-map (zipmap nds (range (count nds)))]
+    (n2i-map i)))
+
+(def gnon get-number-of-node)
 
 (defn mtr-adj
   "Dado g devuelve la matriz de adyacencia."
@@ -98,20 +107,23 @@ i viene dado por un número."
 (defn bf-gral
   "Calcula el camino más corto desde el vértice i al resto."
   [g i]
-  (let [nodes (range (count (nodes g)))]
-    (loop [lprev (init-l-bf g (gnbn g i))
-           lact  (make-array Double/TYPE (count (nodes g)))
+  (let [noi (gnon g i) ; noi stands for number of i
+        nds (nodes g)
+        nds-count (count nds)
+        nds-range (range nds-count)]
+    (loop [lprev (init-l-bf g noi)
+           lact  (make-array Double/TYPE nds-count)
            q 2]
-      (doseq [j nodes]
-        (when-not (= (gnbn g j) i)
-          (let [min (apply min (map #(+ (aget lprev %) (gwbo g % j)) (remove #(= % j) nodes)))])
-          (if (> (aget lprev j) min)
-            (let [k (argmin #(+ (aget lprev %) (gwbo g % j)) nodes)]
-              (aset lact j (+ (aget lprev k) (gwbo g k j))))
-            (aset lact j (aget lprev j)))))
-      (if (every? #(= (aget lprev %) (aget lact %)) nodes)
+      (doseq [j nds-range]
+        (when-not (= j noi)
+          (let [min (apply min (map #(+ (aget lprev %) (gwbo g % j)) (remove #(= % j) nds-range)))]
+            (if (> (aget lprev j) min)
+              (let [k (argmin #(+ (aget lprev %) (gwbo g % j)) nds-range)]
+                (aset lact j (+ (aget lprev k) (gwbo g k j))))
+              (aset lact j (aget lprev j))))))
+      (if (every? #(= (aget lprev %) (aget lact %)) nds-range)
         lact
-        (if (= q (count nodes))
+        (if (= q nds-count)
           nil 
           (recur lact lact (inc q))))
       )))

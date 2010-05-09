@@ -2,7 +2,6 @@
   :description "OCG"
   :url "http://github.com/Serabe/netmove"
   :dependencies [[org.clojure/clojure
-                  "1.1.0-SNAPSHOT"]
+                  "1.1.0"]
                  [org.clojure/clojure-contrib
-                  "1.1.0-SNAPSHOT"]])
-
+                  "1.1.0"]])

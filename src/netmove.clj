@@ -25,13 +25,34 @@
 
 (def gw get-weight)
 
+(defn get-node-by-num
+  "Devuelve el i-ésimo nodo de g. Acepta un tercer argumento opcional con el valor devuelto si no existe el nodo."
+  ([g i]
+     ((nodes g) i))
+  ([g i not-existant]
+     (try (get-node-by-num g i)
+          (catch Exception e
+            not-existant))))
+
+; alias para get-node-by-num
+(def gnbn get-node-by-num)
+
+(defn get-number-of-node
+  "Devuélve el índice del nodo i en g."
+  [g i]
+  (let [nds (nodes g)
+        n2i-map (zipmap nds (range (count nds)))]
+    (n2i-map i)))
+
+(def gnon get-number-of-node)
+
 (defn get-weight-by-ordinal
   "Es como get-weight sólo que en vez del arco (i,j) se le pasa el ordinal de i y de j."
   [g i j]
   (let [nodes (nodes g)]
     (if (= i j)
       0
-      (get-weight g (nth nodes i) (nth nodes j)))))
+      (get-weight g (gnbn g i) (gnbn g j)))))
 
 (def gwbo get-weight-by-ordinal)
 
@@ -50,23 +71,6 @@
          (cons o ())
          (let [paths (filter (complement empty?) (for [o2 (get-neighbors g o) :when (fc o2 vis)] (camino-desde g o2 te fc (cons o vis))))]
            (reduce into paths))))))
-
-(defn get-node-by-num
-  "Devuelve el i-ésimo nodo de g."
-  [g i]
-  ((nodes g) i))
-
-; alias para get-node-by-num
-(def gnbn get-node-by-num)
-
-(defn get-number-of-node
-  "Devuélve el índice del nodo i en g."
-  [g i]
-  (let [nds (nodes g)
-        n2i-map (zipmap nds (range (count nds)))]
-    (n2i-map i)))
-
-(def gnon get-number-of-node)
 
 (defn mtr-adj
   "Dado g devuelve la matriz de adyacencia."
@@ -104,9 +108,23 @@ i viene dado por un número."
                                         ;(count (nodes g)))))
   )
 
-(defn bf-gral
-  "Calcula el camino más corto desde el vértice i al resto."
+(defn bf
   [g i]
+  (let [stop-function (fn [prev act vs i]
+                        (and (< (prev i) (act i))
+                             (every? #(= (prev %) (act %)) vs)))]
+    (bf-gral g i stop-function)))
+
+(defn bf-gral
+  "Calcula el camino más corto desde el vértice i al resto.
+   g es el grafo.
+   i es el nodo inicial.
+   stop-function es un predicado que recibe:
+    1.- Función para obtener el valor previo dado el vértice.
+    2.- Función para obtener el valor actual dado el vértice.
+    3.- La colección de vértices.
+    4.- El nodo inicial tal como está en 3."
+  [g i stop-function]
   (let [noi (gnon g i) ; noi stands for number of i
         nds (nodes g)
         nds-count (count nds)
@@ -114,36 +132,34 @@ i viene dado por un número."
     (loop [lprev (init-l-bf g noi)
            lact  (make-array Double/TYPE nds-count)
            q 2]
-      (doseq [j nds-range]
-        (when-not (= j noi)
-          (let [min (apply min (map #(+ (aget lprev %) (gwbo g % j)) (remove #(= % j) nds-range)))]
-            (if (> (aget lprev j) min)
-              (let [k (argmin #(+ (aget lprev %) (gwbo g % j)) nds-range)]
-                (aset lact j (+ (aget lprev k) (gwbo g k j))))
-              (aset lact j (aget lprev j))))))
-      (if (every? #(= (aget lprev %) (aget lact %)) nds-range)
+      (doseq [j (remove #(= noi %) nds-range)]
+        (let [min (reduce #(if (< %1 %2) %1 %2) (map #(+ (aget lprev %) (gwbo g % j)) (remove #(= % j) nds-range)))]
+          (if (not (< (aget lprev j) min))
+            (let [k (argmin #(+ (aget lprev %) (gwbo g % j)) nds-range)]
+              (aset lact j (+ (aget lprev k) (gwbo g k j))))
+            (aset lact j (aget lprev j)))))
+      (if (stop-function #(aget lprev %) #(aget lact %) nds-range noi)
         lact
         (if (= q nds-count)
           nil 
-          (recur lact lact (inc q))))
-      )))
+          (recur lact lact (inc q)))))))
 
 (comment
   (def g (struct weighted-graph
-               ['A 'B 'C 'D 'E 'F]
-               { ; Neighbors
-                'A ['B 'C 'D]
-                'B ['C]
-                'C ['A 'D 'F]
-                'D ['C]
-                'E []
-                'F ['D]}
-               { ; Weights
-                'A {'B 56 'C 6 'D 2}
-                'B {'C -3}
-                'C {'A -100 'D 50 'F 60}
-                'D {'C 43}
-                'E {}
-                'F {'D -3}}
-               1000000))
+                 ['A 'B 'C 'D 'E 'F]
+                 {                      ; Neighbors
+                  'A ['B 'C 'D]
+                  'B ['C]
+                  'C ['A 'D 'F]
+                  'D ['C]
+                  'E []
+                  'F ['D]}
+                 {                      ; Weights
+                  'A {'B 56 'C 6 'D 2}
+                  'B {'C -3}
+                  'C {'A -100 'D 50 'F 60}
+                  'D {'C 43}
+                  'E {}
+                  'F {'D -3}}
+                 1000000))
   )

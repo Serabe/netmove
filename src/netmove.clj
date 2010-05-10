@@ -108,13 +108,6 @@ i viene dado por un número."
                                         ;(count (nodes g)))))
   )
 
-(defn bf
-  [g i]
-  (let [stop-function (fn [prev act vs i]
-                        (and (< (prev i) (act i))
-                             (every? #(= (prev %) (act %)) vs)))]
-    (bf-gral g i stop-function)))
-
 (defn bf-gral
   "Calcula el camino más corto desde el vértice i al resto.
    g es el grafo.
@@ -144,6 +137,12 @@ i viene dado por un número."
           nil 
           (recur lact lact (inc q)))))))
 
+(defn bf
+  [g i]
+  (let [stop-function (fn [prev act vs i]
+                        (every? #(= (prev %) (act %)) vs))]
+    (bf-gral g i stop-function)))
+
 (comment
   (def g (struct weighted-graph
                  ['A 'B 'C 'D 'E 'F]
@@ -157,8 +156,8 @@ i viene dado por un número."
                  {                      ; Weights
                   'A {'B 56 'C 6 'D 2}
                   'B {'C -3}
-                  'C {'A -100 'D 50 'F 60}
-                  'D {'C 43}
+                  'C {'A -1 'D 50 'F 60}
+                  'D {'C 3}
                   'E {}
                   'F {'D -3}}
                  1000000))

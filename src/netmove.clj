@@ -131,11 +131,11 @@ i viene dado por un número."
             (let [k (argmin #(+ (aget lprev %) (gwbo g % j)) nds-range)]
               (aset lact j (+ (aget lprev k) (gwbo g k j))))
             (aset lact j (aget lprev j)))))
-      (if (stop-function #(aget lprev %) #(aget lact %) nds-range noi)
-        lact
-        (if (= q nds-count)
-          nil 
-          (recur lact lact (inc q)))))))
+      (cond
+       (< (reduce #(if (< %1 %2) %1 %2) (map #(+ (aget lprev %) (gwbo g % noi)) (remove #(= % noi) nds-range))) 0) nil
+       (stop-function #(aget lprev %) #(aget lact %) nds-range noi) lact
+       (= q nds-count) nil
+       true (recur lact lact (inc q))))))
 
 (defn bf
   [g i]
@@ -144,7 +144,9 @@ i viene dado por un número."
     (bf-gral g i stop-function)))
 
 (comment
-  (def g (struct weighted-graph
+  ; g1 tiene un ciclo negativo (A C).
+  ; además, se encuentran los caminos más cortos a la vez que el ciclo.
+  (def g1 (struct weighted-graph
                  ['A 'B 'C 'D 'E 'F]
                  {                      ; Neighbors
                   'A ['B 'C 'D]
@@ -155,7 +157,25 @@ i viene dado por un número."
                   'F ['D]}
                  {                      ; Weights
                   'A {'B 56 'C 6 'D 2}
-                  'B {'C -3}
+                  'B {'C -100}
+                  'C {'A -1 'D 50 'F 60}
+                  'D {'C 3}
+                  'E {}
+                  'F {'D -3}}
+                 1000000))
+  ; g2 no tiene ciclos negativos.
+  (def g2 (struct weighted-graph
+                 ['A 'B 'C 'D 'E 'F]
+                 {                      ; Neighbors
+                  'A ['B 'C 'D]
+                  'B ['C]
+                  'C ['A 'D 'F]
+                  'D ['C]
+                  'E []
+                  'F ['D]}
+                 {                      ; Weights
+                  'A {'B 56 'C 6 'D 2}
+                  'B {'C -1}
                   'C {'A -1 'D 50 'F 60}
                   'D {'C 3}
                   'E {}

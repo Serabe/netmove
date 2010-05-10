@@ -8,6 +8,10 @@
   :default-weight ; The weight of a non-existant edge
   )
 
+(defstruct sol-bf
+  :lengths
+  :paths)
+
 (def weights (accessor weighted-graph :weights))
 
 (def default-weight (accessor weighted-graph :default-weight))
@@ -108,6 +112,23 @@ i viene dado por un número."
                                         ;(count (nodes g)))))
   )
 
+(defn init-p-bf
+  [dim i]
+  (let [p (make-array Integer/TYPE dim)]
+    (doseq [j (range dim)]
+      (aset p j i))
+    p))
+
+(defn- retrieve-paths-bf
+  [g p e]
+  (if (= e (p e))
+    (list e)
+    (cons e (retrieve-paths-bf g p (p e)))))
+
+(defn- retrieve-paths-with-names-bf
+  [g p e]
+  (map #(gnbn g %) (retrieve-paths-bf g p e)))
+
 (defn bf-gral
   "Calcula el camino más corto desde el vértice i al resto.
    g es el grafo.
@@ -118,67 +139,75 @@ i viene dado por un número."
     3.- La colección de vértices.
     4.- El nodo inicial tal como está en 3."
   [g i stop-function]
-  (let [noi (gnon g i) ; noi stands for number of i
+  (let [noi (gnon g i)                  ; noi stands for number of i
         nds (nodes g)
         nds-count (count nds)
         nds-range (range nds-count)]
     (loop [lprev (init-l-bf g noi)
            lact  (make-array Double/TYPE nds-count)
+           p (init-p-bf nds-count noi)
            q 2]
       (doseq [j (remove #(= noi %) nds-range)]
         (let [min (reduce #(if (< %1 %2) %1 %2) (map #(+ (aget lprev %) (gwbo g % j)) (remove #(= % j) nds-range)))]
           (if (not (< (aget lprev j) min))
-            (let [k (argmin #(+ (aget lprev %) (gwbo g % j)) nds-range)]
-              (aset lact j (+ (aget lprev k) (gwbo g k j))))
+            (let [k (argmin #(if (= % j) (default-weight g)  (+ (aget lprev %) (gwbo g % j))) nds-range)]
+              (aset lact j (+ (aget lprev k) (gwbo g k j)))
+              (aset p j k))
             (aset lact j (aget lprev j)))))
       (cond
-       (< (reduce #(if (< %1 %2) %1 %2) (map #(+ (aget lprev %) (gwbo g % noi)) (remove #(= % noi) nds-range))) 0) nil
-       (stop-function #(aget lprev %) #(aget lact %) nds-range noi) lact
+       (< (reduce #(if (< %1 %2) %1 %2) (map #(+ (aget lprev %) (gwbo g % noi)) (remove #(= % noi) nds-range))) 0) [[] []]
+       (stop-function #(aget lprev %) #(aget lact %) nds-range noi) [lact, p]
        (= q nds-count) nil
-       true (recur lact lact (inc q))))))
+       true (recur lact lact p (inc q))))))
 
 (defn bf
   [g i]
   (let [stop-function (fn [prev act vs i]
-                        (every? #(= (prev %) (act %)) vs))]
-    (bf-gral g i stop-function)))
+                        (every? #(= (prev %) (act %)) vs))
+        sol (bf-gral g i stop-function)]
+    (if (nil? sol)
+      nil
+      (let [ls (vec (sol 0))
+            ps (vec (sol 1))
+            paths (map #(reverse (retrieve-paths-with-names-bf g ps %)) (range (count (nodes g))))]
+        [ls paths]))))
 
 (comment
-  ; g1 tiene un ciclo negativo (A C).
-  ; además, se encuentran los caminos más cortos a la vez que el ciclo.
+                                        ; g1 tiene un ciclo negativo (A C).
+                                        ; además, se encuentran los caminos más cortos a la vez que el ciclo.
   (def g1 (struct weighted-graph
-                 ['A 'B 'C 'D 'E 'F]
-                 {                      ; Neighbors
-                  'A ['B 'C 'D]
-                  'B ['C]
-                  'C ['A 'D 'F]
-                  'D ['C]
-                  'E []
-                  'F ['D]}
-                 {                      ; Weights
-                  'A {'B 56 'C 6 'D 2}
-                  'B {'C -100}
-                  'C {'A -1 'D 50 'F 60}
-                  'D {'C 3}
-                  'E {}
-                  'F {'D -3}}
-                 1000000))
-  ; g2 no tiene ciclos negativos.
+                  ['A 'B 'C 'D 'E 'F]
+                  {                     ; Neighbors
+                   'A ['B 'C 'D]
+                   'B ['C]
+                   'C ['A 'D 'F]
+                   'D ['C]
+                   'E []
+                   'F ['D]}
+                  {                     ; Weights
+                   'A {'B 56 'C 6 'D 2}
+                   'B {'C -100}
+                   'C {'A -1 'D 50 'F 60}
+                   'D {'C 3}
+                   'E {}
+                   'F {'D -3}}
+                  1000000))
+                                        ; g2 no tiene ciclos negativos.
   (def g2 (struct weighted-graph
-                 ['A 'B 'C 'D 'E 'F]
-                 {                      ; Neighbors
-                  'A ['B 'C 'D]
-                  'B ['C]
-                  'C ['A 'D 'F]
-                  'D ['C]
-                  'E []
-                  'F ['D]}
-                 {                      ; Weights
-                  'A {'B 56 'C 6 'D 2}
-                  'B {'C -1}
-                  'C {'A -1 'D 50 'F 60}
-                  'D {'C 3}
-                  'E {}
-                  'F {'D -3}}
-                 1000000))
+                  ['A 'B 'C 'D 'E 'F]
+                  {                     ; Neighbors
+                   'A ['B 'C 'D]
+                   'B ['C]
+                   'C ['A 'D 'F]
+                   'D ['C]
+                   'E []
+                   'F ['D]}
+                  {                     ; Weights
+                   'A {'B 56 'C 6 'D 2}
+                   'B {'C -1}
+                   'C {'A -1 'D 50 'F 60}
+                   'D {'C 3}
+                   'E {}
+                   'F {'D -3}}
+                  1000000))
   )

@@ -1,5 +1,5 @@
 (ns netmove_test
-  (:use clojure.testy
+  (:use clojure.test
         netmove))
 
 (def g (struct weighted-graph
@@ -21,9 +21,13 @@
                1000000))
 
 (deftest test-get-weight
+  (is (= 0 (get-weight g 'A 'A)))
   (is (= (default-weight g) (get-weight g 'E 'F)))
   (is (= 50 (get-weight g 'C 'D))))
 
 (deftest test-get-weight-by-ordinal
   (is (= (default-weight g) (get-weight-by-ordinal g 4 5)))
-  (is (= 50 (get-weight g 2 3))))
+  (is (= 50 (get-weight-by-ordinal g 2 3))))
+
+(deftest test-get-node-by-num
+  (is (= 'A (get-node-by-num g 0))))

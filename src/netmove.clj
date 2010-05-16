@@ -24,8 +24,10 @@
    Si no existe, devuelve default-weight."
   
   [g i j]
-  (let [wi (get (weights g) i {})]
-    (get wi j (default-weight g))))
+  (if (= i j)
+    0
+    (let [wi (get (weights g) i {})]
+      (get wi j (default-weight g)))))
 
 (def gw get-weight)
 
@@ -80,7 +82,7 @@
   "Dado g devuelve la matriz de adyacencia."
   [g]
   (let [n (.length (nodes g))
-        mtr (make-array Double/TYPE n n)]
+        mtr (make-array Object n n)]
     (dotimes [i n]
       (dotimes [j n]
         (aset mtr i j (get-weight g (gnbn g i) (gnbn g j)))))
@@ -97,20 +99,25 @@
 (def argmin (partial arg-comp <))
 (def argmax (partial arg-comp >))
 
+; Funciones no relacionadas con grafos útiles para ambos algoritmos
+
+(defn range-without
+  "Devuelve rng sin los elementos pasados."
+  [rng & args]
+  (remove (set args) rng))
+
+; Funciones para el algoritmo Bellman-Ford.
+
 (defn- init-l-bf
   "Inicializa el vector l del algoritmo Bellman-Ford para el grafo g y el vértice i.
 i viene dado por un número."
   [g i]
-  (let [
-        l (make-array Double/TYPE (count (nodes g)))]
+  (let [l (make-array Double/TYPE (count (nodes g)))]
     (doseq [n (range (count (nodes g)))]
-      (if (= i n) ;posiblemente mal el gnbn
+      (if (= i n)
         (aset l n  0)
         (aset l n (gwbo g i n))))
-    l)
-  ;(vec (map #(if (= % i) 0 (get-weight g i (gnbn g %)) ) (range
-                                        ;(count (nodes g)))))
-  )
+    l))
 
 (defn init-p-bf
   [dim i]
@@ -146,16 +153,16 @@ i viene dado por un número."
     (loop [lprev (init-l-bf g noi)
            lact  (make-array Double/TYPE nds-count)
            p (init-p-bf nds-count noi)
-           q 2]
-      (doseq [j (remove #(= noi %) nds-range)]
-        (let [min (reduce #(if (< %1 %2) %1 %2) (map #(+ (aget lprev %) (gwbo g % j)) (remove #(= % j) nds-range)))]
+           q 1]
+      (doseq [j (range-without nds-range noi)]
+        (let [min (reduce #(if (< %1 %2) %1 %2) (map #(+ (aget lprev %) (gwbo g % j)) (range-without nds-range j)))]
           (if (not (< (aget lprev j) min))
             (let [k (argmin #(if (= % j) (default-weight g)  (+ (aget lprev %) (gwbo g % j))) nds-range)]
               (aset lact j (+ (aget lprev k) (gwbo g k j)))
               (aset p j k))
             (aset lact j (aget lprev j)))))
       (cond
-       (< (reduce #(if (< %1 %2) %1 %2) (map #(+ (aget lprev %) (gwbo g % noi)) (remove #(= % noi) nds-range))) 0) [[] []]
+       (< (reduce #(if (< %1 %2) %1 %2) (map #(+ (aget lprev %) (gwbo g % noi)) (range-without nds-range noi))) 0) nil
        (stop-function #(aget lprev %) #(aget lact %) nds-range noi) [lact, p]
        (= q nds-count) nil
        true (recur lact lact p (inc q))))))
@@ -171,6 +178,38 @@ i viene dado por un número."
             ps (vec (sol 1))
             paths (map #(reverse (retrieve-paths-with-names-bf g ps %)) (range (count (nodes g))))]
         [ls paths]))))
+
+; Floyd-Warshall
+
+(defn- init-l-fw
+  "Inicializa el vector l para el algoritmo Floyd-Warshall"
+  [g]
+  (mtr-adj g))
+
+(defn floyd-warshall-gral
+  [g]
+  (let [nds (nodes g)
+        nds-cnt (count nds)
+        nds-range (range nds-cnt)
+        nds-range-without (partial range-without nds-range)]
+    (loop [lprev (init-l-fw g)
+           lact lprev
+           k 0]
+      (if (some #(< (+ (aget lprev % k) (aget lprev k %)) 0) (nds-range-without k)) ;condición de parada
+        nil
+        (do
+          (doseq [i (nds-range-without k)]
+            (doseq [j (nds-range-without k i)]
+              (let [lij (aget lprev i j)
+                    lik (aget lprev i k)
+                    lkj (aget lprev k j)
+                    likj (+ lik lkj)]
+                (if (< likj lij)
+                  (aset lact i j likj)
+                  (aset lact i j lij)))))
+          (if (= k (dec nds-cnt))
+            lact
+            (recur lact lact (inc k))))))))
 
 (comment
                                         ; g1 tiene un ciclo negativo (A C).

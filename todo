@@ -1,0 +1,7 @@
+1.- Generalizar los dos algoritmos.
+2.- Llevar los arrays de caminos a funciones.
+3.- Algunos ejemplillos no estarían de más.
+4.- Mirar la librería de dibujo de grafos en clojure.
+5.- Mirar si se puede eliminar uno de lprev y lact en fw.
+6.- Documentarlo.
+7.- Testearlo.

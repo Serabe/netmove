@@ -106,6 +106,10 @@
   [rng & args]
   (remove (set args) rng))
 
+(defn join-paths
+             [p s]
+             (into (rest s) (reverse p)))
+
 ; Funciones para el algoritmo Bellman-Ford.
 
 (defn- init-l-bf
@@ -186,6 +190,28 @@ i viene dado por un número."
   [g]
   (mtr-adj g))
 
+(defn- init-p-fw
+  "Inicializa el vector p para el algoritmo Floyd-Warshall"
+  [g]
+  (let [dim (count (nodes g))
+        p (make-array Integer/TYPE dim dim)
+        rng (range dim)]
+    (doseq [i rng]
+      (doseq [j rng]
+        (aset p i j i)))
+    p))
+
+(defn- retrieve-path-fw
+  "Devuelve el camino en g de i a j especificado por el array p.
+   i y j están especificados por un ordinal."
+  [g p i j]
+  (let [k (aget p i j)]
+    (if (= i k)
+      (if (= i j)
+        [(gnbn g i)]
+        (vec (list (gnbn g i) (gnbn g j))))
+      (vec (join-paths (retrieve-path-fw g p i k) (retrieve-path-fw g p k j))))))
+
 (defn floyd-warshall-gral
   [g]
   (let [nds (nodes g)
@@ -194,6 +220,7 @@ i viene dado por un número."
         nds-range-without (partial range-without nds-range)]
     (loop [lprev (init-l-fw g)
            lact lprev
+           p (init-p-fw g)
            k 0]
       (if (some #(< (+ (aget lprev % k) (aget lprev k %)) 0) (nds-range-without k)) ;condición de parada
         nil
@@ -205,11 +232,22 @@ i viene dado por un número."
                     lkj (aget lprev k j)
                     likj (+ lik lkj)]
                 (if (< likj lij)
-                  (aset lact i j likj)
+                  (do
+                    (aset lact i j likj)
+                    (aset p i j (aget p k j)))
                   (aset lact i j lij)))))
           (if (= k (dec nds-cnt))
-            lact
-            (recur lact lact (inc k))))))))
+            [lact p]
+            (recur lact lact p (inc k))))))))
+
+(defn floyd-warshall
+  [g]
+  (let [sol (floyd-warshall-gral g)]
+    (if (nil? sol)
+      nil
+      (let [lns (vec (map vec (vec (sol 0))))
+            paths (for [x (range (count (nodes g2)))] (vec (for [y (range (count (nodes g2)))] (vec (retrieve-path-fw g2 p x y)))))]
+        [lns paths]))))
 
 (comment
                                         ; g1 tiene un ciclo negativo (A C).

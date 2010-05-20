@@ -193,7 +193,7 @@ i viene dado por un número."
        (= q nds-count) nil
        true (recur lact lact p (inc q))))))
 
-(defn bf
+(defn bellman-ford
   [g i]
   (let [stop-function (fn [prev act vs i]
                         (every? #(= (prev %) (act %)) vs))
@@ -205,6 +205,8 @@ i viene dado por un número."
             checker (fn [e] (not (= :infty (ls e))))
             paths (vec (map #(vec (reverse (retrieve-path-bf checker g ps %))) (range (count (nodes g)))))]
         [ls paths]))))
+
+(def bf bellman-ford)
 
 ; Floyd-Warshall
 
@@ -277,6 +279,8 @@ i viene dado por un número."
             checker (fn [i j] (not (= :infty ((lns i) j))))
             paths (for [x nds-range] (vec (for [y nds-range] (vec (retrieve-path-fw checker g (sol 1) x y)))))]
         [lns paths]))))
+
+(def fw floyd-warshall)
 
 (comment
                                         ; g1 tiene un ciclo negativo (A C).

@@ -148,15 +148,16 @@ i viene dado por un número."
       (aset p j i))
     p))
 
-(defn- retrieve-paths-bf
-  [g p e]
-  (if (= e (p e))
-    (list e)
-    (cons e (retrieve-paths-bf g p (p e)))))
-
-(defn- retrieve-paths-with-names-bf
-  [g p e]
-  (map #(gnbn g %) (retrieve-paths-bf g p e)))
+(defn- retrieve-path-bf
+  ([g p e]
+      (let [ne (gnbn g e)]
+        (if (= e (p e))
+          (list ne)
+          (cons ne (retrieve-path-bf g p (p e))))))
+  ([checker g p e]
+     (if (checker e)
+       (retrieve-path-bf g p e)
+       [])))
 
 (defn bf-gral
   "Calcula el camino más corto desde el vértice i al resto.
@@ -201,7 +202,8 @@ i viene dado por un número."
       nil
       (let [ls (vec (sol 0))
             ps (vec (sol 1))
-            paths (vec (map #(vec (reverse (retrieve-paths-with-names-bf g ps %))) (range (count (nodes g)))))]
+            checker (fn [e] (not (= :infty (ls e))))
+            paths (vec (map #(vec (reverse (retrieve-path-bf checker g ps %))) (range (count (nodes g)))))]
         [ls paths]))))
 
 ; Floyd-Warshall
@@ -224,16 +226,23 @@ i viene dado por un número."
 
 (defn- retrieve-path-fw
   "Devuelve el camino en g de i a j especificado por el array p.
-   i y j están especificados por un ordinal."
-  [g p i j]
-  (let [k (aget p i j)]
-    (if (= i k)
-      (if (= i j)
-        [(gnbn g i)]
-        (vec (list (gnbn g i) (gnbn g j))))
-      (vec (join-paths (retrieve-path-fw g p i k) (retrieve-path-fw g p k j))))))
+   i y j están especificados por un ordinal.
+   Se añade un parámetro opcional al principio. Éste ha de ser una función que dados los vértices i y j, devuelva true si el camino existe y false si no."
+  ([g p i j]
+     (let [k (aget p i j)]
+        (if (= i k)
+          (if (= i j)
+            [(gnbn g i)]
+            (vec (list (gnbn g i) (gnbn g j))))
+          (vec (join-paths (retrieve-path-fw g p i k) (retrieve-path-fw g p k j))))))
+  ([checker g p i j]
+     (if (checker i j)
+       (retrieve-path-fw g p i j)
+       [])))
+
 
 (defn floyd-warshall-gral
+  "Aplica el algoritmo Floyd-Warshall al grafo g. Las funciones comp y add son equivalentes a las encontradas en bf-gral"
   [g comp add]
   (let [nds (nodes g)
         nds-cnt (count nds)
@@ -268,7 +277,8 @@ i viene dado por un número."
       nil
       (let [lns (vec (map vec (vec (sol 0))))
             nds-range (range (count (nodes g)))
-            paths (for [x nds-range] (vec (for [y nds-range] (vec (retrieve-path-fw g (sol 1) x y)))))]
+            checker (fn [i j] (not (= :infty ((lns i) j))))
+            paths (for [x nds-range] (vec (for [y nds-range] (vec (retrieve-path-fw checker g (sol 1) x y)))))]
         [lns paths]))))
 
 (comment

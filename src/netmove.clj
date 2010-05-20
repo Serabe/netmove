@@ -148,8 +148,9 @@ i viene dado por un número."
     1.- Función para obtener el valor previo dado el vértice.
     2.- Función para obtener el valor actual dado el vértice.
     3.- La colección de vértices.
-    4.- El nodo inicial tal como está en 3."
-  [g i stop-function]
+    4.- El nodo inicial tal como está en 3.
+  comp es la función de comparación. Ha de ser transitiva. Recibe dos longitudes de caminos en g."
+  [g i stop-function comp]
   (let [noi (gnon g i)                  ; noi stands for number of i
         nds (nodes g)
         nds-count (count nds)
@@ -159,14 +160,14 @@ i viene dado por un número."
            p (init-p-bf nds-count noi)
            q 1]
       (doseq [j (range-without nds-range noi)]
-        (let [min (reduce #(if (< %1 %2) %1 %2) (map #(+ (aget lprev %) (gwbo g % j)) (range-without nds-range j)))]
-          (if (not (< (aget lprev j) min))
+        (let [min (reduce #(if (comp %1 %2) %1 %2) (map #(+ (aget lprev %) (gwbo g % j)) (range-without nds-range j)))]
+          (if (not (comp (aget lprev j) min))
             (let [k (argmin #(if (= % j) (default-weight g)  (+ (aget lprev %) (gwbo g % j))) nds-range)]
               (aset lact j (+ (aget lprev k) (gwbo g k j)))
               (aset p j k))
             (aset lact j (aget lprev j)))))
       (cond
-       (< (reduce #(if (< %1 %2) %1 %2) (map #(+ (aget lprev %) (gwbo g % noi)) (range-without nds-range noi))) 0) nil
+       (< (reduce #(if (comp %1 %2) %1 %2) (map #(+ (aget lprev %) (gwbo g % noi)) (range-without nds-range noi))) 0) nil
        (stop-function #(aget lprev %) #(aget lact %) nds-range noi) [lact, p]
        (= q nds-count) nil
        true (recur lact lact p (inc q))))))
@@ -175,7 +176,7 @@ i viene dado por un número."
   [g i]
   (let [stop-function (fn [prev act vs i]
                         (every? #(= (prev %) (act %)) vs))
-        sol (bf-gral g i stop-function)]
+        sol (bf-gral g i stop-function <)]
     (if (nil? sol)
       nil
       (let [ls (vec (sol 0))
@@ -246,7 +247,8 @@ i viene dado por un número."
     (if (nil? sol)
       nil
       (let [lns (vec (map vec (vec (sol 0))))
-            paths (for [x (range (count (nodes g2)))] (vec (for [y (range (count (nodes g2)))] (vec (retrieve-path-fw g2 p x y)))))]
+            nds-range (range (count (nodes g)))
+            paths (for [x nds-range] (vec (for [y nds-range] (vec (retrieve-path-fw g (sol 1) x y)))))]
         [lns paths]))))
 
 (comment
@@ -287,4 +289,6 @@ i viene dado por un número."
                    'E {}
                    'F {'D -3}}
                   1000000))
+  (bf g1 'A)
+  (bf g2 'A)
   )

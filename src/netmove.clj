@@ -187,7 +187,7 @@ i viene dado por un número."
               (aset p j k))
             (aset lact j (aget lprev j)))))
       (cond
-       (< (reduce #(if (comp %1 %2) %1 %2) (map #(add (aget lprev %) (gwbo g % noi)) (range-without nds-range noi))) 0) nil
+       (comp (reduce #(if (comp %1 %2) %1 %2) (map #(add (aget lprev %) (gwbo g % noi)) (range-without nds-range noi))) 0) nil
        (stop-function #(aget lprev %) #(aget lact %) nds-range noi) [lact, p]
        (= q nds-count) nil
        true (recur lact lact p (inc q))))))
@@ -234,7 +234,7 @@ i viene dado por un número."
       (vec (join-paths (retrieve-path-fw g p i k) (retrieve-path-fw g p k j))))))
 
 (defn floyd-warshall-gral
-  [g comp]
+  [g comp add]
   (let [nds (nodes g)
         nds-cnt (count nds)
         nds-range (range nds-cnt)
@@ -243,7 +243,7 @@ i viene dado por un número."
            lact lprev
            p (init-p-fw g)
            k 0]
-      (if (some #(< (+ (aget lprev % k) (aget lprev k %)) 0) (nds-range-without k)) ;condición de parada
+      (if (some #(comp (add (aget lprev % k) (aget lprev k %)) 0) (nds-range-without k)) ;condición de parada
         nil
         (do
           (doseq [i (nds-range-without k)]
@@ -251,7 +251,7 @@ i viene dado por un número."
               (let [lij (aget lprev i j)
                     lik (aget lprev i k)
                     lkj (aget lprev k j)
-                    likj (+ lik lkj)]
+                    likj (add lik lkj)]
                 (if (comp likj lij)
                   (do
                     (aset lact i j likj)
@@ -263,7 +263,7 @@ i viene dado por un número."
 
 (defn floyd-warshall
   [g]
-  (let [sol (floyd-warshall-gral g extended-min)]
+  (let [sol (floyd-warshall-gral g extended-min extended-add)]
     (if (nil? sol)
       nil
       (let [lns (vec (map vec (vec (sol 0))))

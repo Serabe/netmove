@@ -149,8 +149,9 @@ i viene dado por un número."
     2.- Función para obtener el valor actual dado el vértice.
     3.- La colección de vértices.
     4.- El nodo inicial tal como está en 3.
-  comp es la función de comparación. Ha de ser transitiva. Recibe dos longitudes de caminos en g."
-  [g i stop-function comp]
+  comp es la función de comparación. Ha de ser transitiva. Recibe dos longitudes de caminos en g.
+  add es la función de adición de una longitud con un arco. Recibe como primer parámetro la longitud de un camino y como segundo el peso de un arco."
+  [g i stop-function comp add]
   (let [noi (gnon g i)                  ; noi stands for number of i
         nds (nodes g)
         nds-count (count nds)
@@ -160,14 +161,14 @@ i viene dado por un número."
            p (init-p-bf nds-count noi)
            q 1]
       (doseq [j (range-without nds-range noi)]
-        (let [min (reduce #(if (comp %1 %2) %1 %2) (map #(+ (aget lprev %) (gwbo g % j)) (range-without nds-range j)))]
+        (let [min (reduce #(if (comp %1 %2) %1 %2) (map #(add (aget lprev %) (gwbo g % j)) (range-without nds-range j)))]
           (if (not (comp (aget lprev j) min))
-            (let [k (argmin #(if (= % j) (default-weight g)  (+ (aget lprev %) (gwbo g % j))) nds-range)]
-              (aset lact j (+ (aget lprev k) (gwbo g k j)))
+            (let [k (argmin #(if (= % j) (default-weight g)  (add (aget lprev %) (gwbo g % j))) nds-range)]
+              (aset lact j (add (aget lprev k) (gwbo g k j)))
               (aset p j k))
             (aset lact j (aget lprev j)))))
       (cond
-       (< (reduce #(if (comp %1 %2) %1 %2) (map #(+ (aget lprev %) (gwbo g % noi)) (range-without nds-range noi))) 0) nil
+       (< (reduce #(if (comp %1 %2) %1 %2) (map #(add (aget lprev %) (gwbo g % noi)) (range-without nds-range noi))) 0) nil
        (stop-function #(aget lprev %) #(aget lact %) nds-range noi) [lact, p]
        (= q nds-count) nil
        true (recur lact lact p (inc q))))))
@@ -176,7 +177,7 @@ i viene dado por un número."
   [g i]
   (let [stop-function (fn [prev act vs i]
                         (every? #(= (prev %) (act %)) vs))
-        sol (bf-gral g i stop-function <)]
+        sol (bf-gral g i stop-function < +)]
     (if (nil? sol)
       nil
       (let [ls (vec (sol 0))

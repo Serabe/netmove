@@ -248,27 +248,24 @@ i viene dado por un número."
         nds-cnt (count nds)
         nds-range (range nds-cnt)
         nds-range-without (partial range-without nds-range)]
-    (loop [lprev (init-l-fw g)
-           lact lprev
+    (loop [l (init-l-fw g)
            p (init-p-fw g)
            k 0]
-      (if (some #(comp (add (aget lprev % k) (aget lprev k %)) 0) (nds-range-without k)) ;condición de parada
+      (if (some #(comp (add (aget l % k) (aget l k %)) 0) (nds-range-without k)) ;condición de parada
         nil
         (do
           (doseq [i (nds-range-without k)]
             (doseq [j (nds-range-without k i)]
-              (let [lij (aget lprev i j)
-                    lik (aget lprev i k)
-                    lkj (aget lprev k j)
+              (let [lij (aget l i j)
+                    lik (aget l i k)
+                    lkj (aget l k j)
                     likj (add lik lkj)]
-                (if (comp likj lij)
-                  (do
-                    (aset lact i j likj)
-                    (aset p i j (aget p k j)))
-                  (aset lact i j lij)))))
+                (when (comp likj lij)
+                  (aset l i j likj)
+                  (aset p i j (aget p k j))))))
           (if (= k (dec nds-cnt))
-            [lact p]
-            (recur lact lact p (inc k))))))))
+            [l p]
+            (recur l p (inc k))))))))
 
 (defn floyd-warshall
   [g]

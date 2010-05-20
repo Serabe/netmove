@@ -116,7 +116,7 @@
   "Inicializa el vector l del algoritmo Bellman-Ford para el grafo g y el vértice i.
 i viene dado por un número."
   [g i]
-  (let [l (make-array Double/TYPE (count (nodes g)))]
+  (let [l (make-array Object (count (nodes g)))]
     (doseq [n (range (count (nodes g)))]
       (if (= i n)
         (aset l n  0)
@@ -157,13 +157,14 @@ i viene dado por un número."
         nds-count (count nds)
         nds-range (range nds-count)]
     (loop [lprev (init-l-bf g noi)
-           lact  (make-array Double/TYPE nds-count)
+           lact  lprev
            p (init-p-bf nds-count noi)
            q 1]
       (doseq [j (range-without nds-range noi)]
-        (let [min (reduce #(if (comp %1 %2) %1 %2) (map #(add (aget lprev %) (gwbo g % j)) (range-without nds-range j)))]
+        (let [k (arg-comp comp #(if (= % j) (default-weight g)  (add (aget lprev %) (gwbo g % j))) nds-range)
+              min (add (get lprev k) (gwbo g k j))]
           (if (not (comp (aget lprev j) min))
-            (let [k (argmin #(if (= % j) (default-weight g)  (add (aget lprev %) (gwbo g % j))) nds-range)]
+            (let []
               (aset lact j (add (aget lprev k) (gwbo g k j)))
               (aset p j k))
             (aset lact j (aget lprev j)))))
@@ -177,7 +178,16 @@ i viene dado por un número."
   [g i]
   (let [stop-function (fn [prev act vs i]
                         (every? #(= (prev %) (act %)) vs))
-        sol (bf-gral g i stop-function < +)]
+        add (fn [l c]
+              (if (or (= l :infty) (= c :infty))
+                :infty
+                (+ l c)))
+        m (fn [p q]
+            (cond
+             (= p :infty) false
+             (= q :infty) (not (= p :infty))
+             :else (< p q)))
+        sol (bf-gral g i stop-function m add)]
     (if (nil? sol)
       nil
       (let [ls (vec (sol 0))
@@ -290,6 +300,25 @@ i viene dado por un número."
                    'E {}
                    'F {'D -3}}
                   1000000))
+
+  (def g3 (struct weighted-graph
+                  ['A 'B 'C 'D 'E 'F]
+                  {                     ; Neighbors
+                   'A ['B 'C 'D]
+                   'B ['C]
+                   'C ['A 'D 'F]
+                   'D ['C]
+                   'E []
+                   'F ['D]}
+                  {                     ; Weights
+                   'A {'B 56 'C 6 'D 2}
+                   'B {'C -1}
+                   'C {'A -1 'D 50 'F 60}
+                   'D {'C 3}
+                   'E {}
+                   'F {'D -3}}
+                  :infty))
   (bf g1 'A)
   (bf g2 'A)
+  (bf g3 'A)
   )

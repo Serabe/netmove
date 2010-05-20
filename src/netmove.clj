@@ -107,8 +107,26 @@
   (remove (set args) rng))
 
 (defn join-paths
-             [p s]
-             (into (rest s) (reverse p)))
+  [p s]
+  (into (rest s) (reverse p)))
+
+(defn extended-min
+  "Comparación equivalente a <, pero añadiendo los casos correspondientes para poder manejar :infty como marca de infinito"
+  [p q]
+  (cond
+   (= p :infty) false ; Si p es infinito, p no puede ser estrictamente
+                      ; menor que nada.
+   (= q :infty) (not (= p :infty)) ; Si q es infinito, basta que p no
+                                   ; lo sea para que sea estrictamente menor
+   :else (< p q)) ; Si ninguno es infinito, usamos <
+  )
+
+(defn extended-add
+  "Adición equivalente a la suma, pero capaz de manejar infinitos (sólamente infinitos positivos"
+  [l c]
+  (if (or (= l :infty) (= c :infty))
+    :infty
+    (+ l c)))
 
 ; Funciones para el algoritmo Bellman-Ford.
 
@@ -178,21 +196,12 @@ i viene dado por un número."
   [g i]
   (let [stop-function (fn [prev act vs i]
                         (every? #(= (prev %) (act %)) vs))
-        add (fn [l c]
-              (if (or (= l :infty) (= c :infty))
-                :infty
-                (+ l c)))
-        m (fn [p q]
-            (cond
-             (= p :infty) false
-             (= q :infty) (not (= p :infty))
-             :else (< p q)))
-        sol (bf-gral g i stop-function m add)]
+        sol (bf-gral g i stop-function extended-min extended-add)]
     (if (nil? sol)
       nil
       (let [ls (vec (sol 0))
             ps (vec (sol 1))
-            paths (map #(reverse (retrieve-paths-with-names-bf g ps %)) (range (count (nodes g))))]
+            paths (vec (map #(vec (reverse (retrieve-paths-with-names-bf g ps %))) (range (count (nodes g)))))]
         [ls paths]))))
 
 ; Floyd-Warshall
@@ -225,7 +234,7 @@ i viene dado por un número."
       (vec (join-paths (retrieve-path-fw g p i k) (retrieve-path-fw g p k j))))))
 
 (defn floyd-warshall-gral
-  [g]
+  [g comp]
   (let [nds (nodes g)
         nds-cnt (count nds)
         nds-range (range nds-cnt)
@@ -243,7 +252,7 @@ i viene dado por un número."
                     lik (aget lprev i k)
                     lkj (aget lprev k j)
                     likj (+ lik lkj)]
-                (if (< likj lij)
+                (if (comp likj lij)
                   (do
                     (aset lact i j likj)
                     (aset p i j (aget p k j)))
@@ -254,7 +263,7 @@ i viene dado por un número."
 
 (defn floyd-warshall
   [g]
-  (let [sol (floyd-warshall-gral g)]
+  (let [sol (floyd-warshall-gral g extended-min)]
     (if (nil? sol)
       nil
       (let [lns (vec (map vec (vec (sol 0))))
@@ -321,4 +330,7 @@ i viene dado por un número."
   (bf g1 'A)
   (bf g2 'A)
   (bf g3 'A)
+  (floyd-warshall g1)
+  (floyd-warshall g2)
+  (floyd-warshall g3)
   )

@@ -27,7 +27,7 @@
 (defn draw
   "Dado un grafo lo dibuja en pantalla."
   [g]
-  (draw-directed-graph (get-all-arcs g)))q
+  (draw-directed-graph (get-all-arcs g)))
 
 (defn get-weight
 
@@ -125,6 +125,10 @@
 
 ; Funciones para el algoritmo Bellman-Ford.
 
+(defn stop-fn-bf
+  [prev act vs i]
+  )
+
 (defn- init-l-bf
   "Inicializa el vector l del algoritmo Bellman-Ford para el grafo g y el vértice i.
 i viene dado por un número."
@@ -190,9 +194,7 @@ i viene dado por un número."
 
 (defn bellman-ford
   [g i]
-  (let [stop-function (fn [prev act vs i]
-                        (every? #(= (prev %) (act %)) vs))
-        sol (bf-gral g i stop-function extended-min extended-add)]
+  (let [sol (bf-gral g i stop-fn-bf extended-min extended-add)]
     (if (nil? sol)
       nil
       (let [ls (vec (sol 0))
@@ -339,4 +341,30 @@ i viene dado por un número."
   (floyd-warshall g1)
   (floyd-warshall g2)
   (floyd-warshall g3)
+
+  (def road-example (struct weighted-graph
+                            ['A 'B 'C 'D 'E 'F 'G 'H 'I]
+                            {
+                             'A ['B 'C 'D]
+                             'B ['E 'F]
+                             'C ['E]
+                             'D ['F]
+                             'E ['G 'H]
+                             'F ['H]
+                             'G ['I]
+                             'H ['I]
+                             }
+                            {
+                             'A {'B 3.2 'C 2.8 'D 2.2}
+                             'B {'E 2 'F 3.6}
+                             'C {'E 3.7}
+                             'D {'F 4}
+                             'E {'G 2.9 'H 3.5}
+                             'F {'H 2.1}
+                             'G {'I 3.3}
+                             'H {'I 3.8}}
+                            0
+                            ))
+  
+  (bf-gral road-example 'A stop-fn-bf > min)
   )

@@ -1,5 +1,6 @@
 (ns netmove
-  (:use clojure.contrib.graph))
+  (:use clojure.contrib.graph)
+  (:use vijual))
 
 (defstruct weighted-graph
   :nodes          ; The nodes of the graph, a collection
@@ -17,6 +18,16 @@
 (def default-weight (accessor weighted-graph :default-weight))
 
 (def nodes (accessor weighted-graph :nodes))
+
+(defn- get-all-arcs
+  "Devuelve todos los arcos de g"
+  [g]
+  (for [x (nodes g) y (get-neighbors g x)] [x y]))
+
+(defn draw
+  "Dado un grafo lo dibuja en pantalla."
+  [g]
+  (draw-directed-graph (get-all-arcs g)))q
 
 (defn get-weight
 
@@ -61,22 +72,6 @@
       (get-weight g (gnbn g i) (gnbn g j)))))
 
 (def gwbo get-weight-by-ordinal)
-
-(comment 
-  (defn camino-desde
-    "[g o te fc]
-   Dado g grafo, o vértice del grafo, calcula todos los caminos
-   posibles dada la función de poda te, comprobando con la
-   función de contenido fc.
-   La función de poda va de vértices en booleanos.
-   La función de contenido va de vértices por lista de vértices
-   en booleanos."
-    ([g o te fc] (camino-desde g o te fc ()))
-    ([g o te fc vis]
-       (if (te o)
-         (cons o ())
-         (let [paths (filter (complement empty?) (for [o2 (get-neighbors g o) :when (fc o2 vis)] (camino-desde g o2 te fc (cons o vis))))]
-           (reduce into paths))))))
 
 (defn mtr-adj
   "Dado g devuelve la matriz de adyacencia."

@@ -126,8 +126,15 @@
 ; Funciones para el algoritmo Bellman-Ford.
 
 (defn stop-fn-bf
+  "Función de parada del algoritmo Bellman-Ford"
   [prev act vs i]
-  )
+  (every? #(= (prev %) (act %)) vs))
+
+(defn make-checker-bf
+  "Crea un comprobador general. Simplemente comprueba que (l e) no sea :infty."
+  [g i l p]
+  (fn [e]
+    (not (= :infty (l e)))))
 
 (defn- init-l-bf
   "Inicializa el vector l del algoritmo Bellman-Ford para el grafo g y el vértice i.
@@ -158,7 +165,7 @@ i viene dado por un número."
        (retrieve-path-bf g p e)
        [])))
 
-(defn bf-gral
+(defn bellman-ford-impl
   "Calcula el camino más corto desde el vértice i al resto.
    g es el grafo.
    i es el nodo inicial.
@@ -188,20 +195,36 @@ i viene dado por un número."
             (aset lact j (aget lprev j)))))
       (cond
        (comp (reduce #(if (comp %1 %2) %1 %2) (map #(add (aget lprev %) (gwbo g % noi)) (range-without nds-range noi))) 0) nil
-       (stop-function #(aget lprev %) #(aget lact %) nds-range noi) [lact, p]
+       (stop-function  #(aget lprev %) #(aget lact %) nds-range noi) [lact, p]
        (= q nds-count) nil
        true (recur lact lact p (inc q))))))
 
-(defn bellman-ford
-  [g i]
-  (let [sol (bf-gral g i stop-fn-bf extended-min extended-add)]
+(defn bellman-ford-gral
+  "Calcula el camino más corto desde el vértice i al resto.
+   make-checker es una función que dados el grafo g, el  nodo i, el vector l y el vector p devuelve la función checker de retrieve-path-bf
+   g es el grafo.
+   i es el nodo inicial.
+   stop-function es un predicado que recibe:
+    1.- Función para obtener el valor previo dado el vértice.
+    2.- Función para obtener el valor actual dado el vértice.
+    3.- La colección de vértices.
+    4.- El nodo inicial tal como está en 3.
+  comp es la función de comparación. Ha de ser transitiva. Recibe dos longitudes de caminos en g.
+  add es la función de adición de una longitud con un arco. Recibe como primer parámetro la longitud de un camino y como segundo el peso de un arco."
+  [make-checker g i stop-function comp add]
+  (let [sol (bellman-ford-impl g i stop-function comp add)]
     (if (nil? sol)
       nil
       (let [ls (vec (sol 0))
             ps (vec (sol 1))
-            checker (fn [e] (not (= :infty (ls e))))
+            checker (make-checker g i ls ps)
             paths (vec (map #(vec (reverse (retrieve-path-bf checker g ps %))) (range (count (nodes g)))))]
-        [ls paths]))))
+        [ls paths])))
+  )
+
+(defn bellman-ford
+  [g i]
+  (bellman-ford-gral make-checker-bf g i stop-fn-bf extended-min extended-add))
 
 (def bf bellman-ford)
 
@@ -366,6 +389,10 @@ i viene dado por un número."
                             0
                             ))
   
-  (bf-gral road-example 'A stop-fn-bf > min)
-
+  (let [sol  (bellman-ford-gral make-checker-bf road-example 'A stop-fn-bf > min)
+        h    (last (sol 0))
+        path (last (sol 1))]
+    (str "La altura máxima es " h " y el camino es " (apply str (interpose ", " path)) "."))
   )
+
+  

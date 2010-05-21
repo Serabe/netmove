@@ -251,7 +251,7 @@ i viene dado por un número."
    i y j están especificados por un ordinal.
    Se añade un parámetro opcional al principio. Éste ha de ser una función que dados los vértices i y j, devuelva true si el camino existe y false si no."
   ([g p i j]
-     (let [k (aget p i j)]
+     (let [k ((p i) j)]
         (if (= i k)
           (if (= i j)
             [(gnbn g i)]
@@ -262,8 +262,14 @@ i viene dado por un número."
        (retrieve-path-fw g p i j)
        [])))
 
+(defn make-checker-fw
+  "Crea un comprobador general. Simplemente comprueba que (l ij) no sea :infty."
+  [g l p]
+  (fn [i j]
+    (not (= :infty ((l i) j)))))
 
-(defn floyd-warshall-gral
+
+(defn floyd-warshall-impl
   "Aplica el algoritmo Floyd-Warshall al grafo g. Las funciones comp y add son equivalentes a las encontradas en bf-gral"
   [g comp add]
   (let [nds (nodes g)
@@ -289,16 +295,21 @@ i viene dado por un número."
             [l p]
             (recur l p (inc k))))))))
 
-(defn floyd-warshall
-  [g]
-  (let [sol (floyd-warshall-gral g extended-min extended-add)]
+(defn floyd-warshall-gral
+  [make-checker g comp add]
+  (let [sol (floyd-warshall-impl g comp add)]
     (if (nil? sol)
       nil
-      (let [lns (vec (map vec (vec (sol 0))))
+      (let [l         (vec (map vec (vec (sol 0))))
+            p         (vec (map vec (vec (sol 1))))
             nds-range (range (count (nodes g)))
-            checker (fn [i j] (not (= :infty ((lns i) j))))
-            paths (for [x nds-range] (vec (for [y nds-range] (vec (retrieve-path-fw checker g (sol 1) x y)))))]
-        [lns paths]))))
+            checker   (make-checker g l p)
+            paths     (for [x nds-range] (vec (for [y nds-range] (vec (retrieve-path-fw checker g p x y)))))]
+        [l paths]))))
+
+(defn floyd-warshall
+  [g]
+  (floyd-warshall-gral make-checker-fw g extended-min extended-add))
 
 (def fw floyd-warshall)
 

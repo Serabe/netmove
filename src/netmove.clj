@@ -266,17 +266,26 @@ i viene dado por un número."
             (vec (list (gnbn g i) (gnbn g j))))
           (vec (join-paths (retrieve-path-fw g p i k) (retrieve-path-fw g p k j))))))
   ([checker g p i j]
-     (if (checker i j)
-       (retrieve-path-fw g p i j)
-       [])))
+     (let [path (retrieve-path-fw g p i j)]
+       (if (checker path)
+         path
+         []))))
 
 (defn make-checker-fw
   "Crea un comprobador general. Simplemente comprueba que (l ij) no sea :infty."
   [g l p]
-  (fn [i j]
-    (not (= :infty ((l i) j)))))
+  (fn [path]
+    (not (= :infty ((l (gnon g (last path))) (gnon g (first path)))))))
 
-(defn floyd-warshall-impl
+(defn fw-solution-to-fn
+  [g sol]
+  (fn [i j]
+    (let [noi (gnon g i)
+          noj (gnon g j)]
+      {:length (((sol 0) noi) noj)
+       :path   (((sol 1) noi) noj)})))
+
+(defn- floyd-warshall-impl
   "Aplica el algoritmo Floyd-Warshall al grafo g. Las funciones comp y add son equivalentes a las encontradas en bf-gral"
   [g comp add]
   (let [nds (nodes g)
@@ -287,7 +296,7 @@ i viene dado por un número."
            p (init-p-fw g)
            k 0]
       (if (some #(comp (add (aget l % k) (aget l k %)) 0) (nds-range-without k)) ;condición de parada
-        nil
+        (fn [i j] nil)
         (do
           (doseq [i (nds-range-without k)]
             (doseq [j (nds-range-without k i)]
@@ -306,16 +315,16 @@ i viene dado por un número."
   [make-checker g comp add]
   (let [sol (floyd-warshall-impl g comp add)]
     (if (nil? sol)
-      nil
+      (fn [i j] nil)
       (let [l         (vec (map vec (vec (sol 0))))
             p         (vec (map vec (vec (sol 1))))
             nds-range (range (count (nodes g)))
             checker   (make-checker g l p)
-            paths     (for [x nds-range] (vec (for [y nds-range] (vec (retrieve-path-fw checker g p x y)))))]
-        [l paths]))))
+            paths     (vec (for [x nds-range] (vec (for [y nds-range] (vec (retrieve-path-fw checker g p x y))))))]
+        (fw-solution-to-fn g [l paths])))))
 
 (defn floyd-warshall
   [g]
   (floyd-warshall-gral make-checker-fw g extended-min extended-add))
 
-(def fw floyd-warshall)
+(defalias fw floyd-warshall)

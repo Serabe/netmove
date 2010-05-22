@@ -1,6 +1,7 @@
 (ns netmove
   (:use clojure.contrib.graph)
-  (:use vijual))
+  (:use vijual)
+  (:use [clojure.contrib.def :only (defalias)]))
 
 (defstruct weighted-graph
   :nodes          ; The nodes of the graph, a collection
@@ -21,7 +22,7 @@
   (for [x (nodes g) y (get-neighbors g x)] [x y]))
 
 (defn draw
-  "Dado un grafo lo dibuja en pantalla."
+  "Dado un grafo lo dibuja en pantalla. Utiliza la librería vijual."
   [g]
   (draw-directed-graph (get-all-arcs g)))
 
@@ -36,7 +37,7 @@
     (let [wi (get (weights g) i {})]
       (get wi j (default-weight g)))))
 
-(def gw get-weight)
+(defalias gw get-weight)
 
 (defn get-node-by-num
   "Devuelve el i-ésimo nodo de g. Acepta un tercer argumento opcional con el valor devuelto si no existe el nodo."
@@ -47,8 +48,7 @@
           (catch Exception e
             not-existant))))
 
-; alias para get-node-by-num
-(def gnbn get-node-by-num)
+(defalias gnbn get-node-by-num)
 
 (defn get-number-of-node
   "Devuélve el índice del nodo i en g."
@@ -57,7 +57,7 @@
         n2i-map (zipmap nds (range (count nds)))]
     (n2i-map i)))
 
-(def gnon get-number-of-node)
+(defalias gnon get-number-of-node)
 
 (defn get-weight-by-ordinal
   "Es como get-weight sólo que en vez del arco (i,j) se le pasa el ordinal de i y de j."
@@ -67,7 +67,7 @@
       0
       (get-weight g (gnbn g i) (gnbn g j)))))
 
-(def gwbo get-weight-by-ordinal)
+(defalias gwbo get-weight-by-ordinal)
 
 (defn mtr-adj
   "Dado g devuelve la matriz de adyacencia."
@@ -98,6 +98,7 @@
   (remove (set args) rng))
 
 (defn join-paths
+  "Dados dos caminos, p y s, tal que el vértice final de p es el inicial de s, devuelve el camino unión."
   [p s]
   (into (rest s) (reverse p)))
 
@@ -113,7 +114,7 @@
   )
 
 (defn extended-add
-  "Adición equivalente a la suma, pero capaz de manejar infinitos (sólamente infinitos positivos"
+  "Adición equivalente a la suma, pero capaz de manejar infinitos (sólamente infinitos positivos)"
   [l c]
   (if (or (= l :infty) (= c :infty))
     :infty
@@ -127,10 +128,11 @@
   (every? #(= (prev %) (act %)) vs))
 
 (defn make-checker-bf
-  "Crea un comprobador general. Simplemente comprueba que (l e) no sea :infty."
+  "Crea un comprobador general. Simplemente comprueba que la longitud del camino no sea :infty."
   [g i l p]
-  (fn [e]
-    (not (= :infty (l e)))))
+  (fn [path]
+    (not (= :infty (l (gnon g (first path))))))) ;first porque el
+                                        ;camino lo devuelve invertido.
 
 (defn- init-l-bf
   "Inicializa el vector l del algoritmo Bellman-Ford para el grafo g y el vértice i.
@@ -143,7 +145,8 @@ i viene dado por un número."
         (aset l n (gwbo g i n))))
     l))
 
-(defn init-p-bf
+(defn- init-p-bf
+  "Inicializa el vector p del algoritmo Bellman-Ford de dimensión dim, cuyo vértice inicial es i (dado por el índice)."
   [dim i]
   (let [p (make-array Integer/TYPE dim)]
     (doseq [j (range dim)]
@@ -157,11 +160,20 @@ i viene dado por un número."
           (list ne)
           (cons ne (retrieve-path-bf g p (p e))))))
   ([checker g p e]
-     (if (checker e)
-       (retrieve-path-bf g p e)
-       [])))
+     (let [path (retrieve-path-bf g p e)]
+       (if (checker path)
+         path
+         []))))
 
-(defn bellman-ford-impl
+(defn bf-solution-to-fn
+     "Dado un grafo y la solución de bf-gral, devuelve una función que espera un nodo y devuelve el camino óptimo junto con su longitud. Además, la solución no es nula."
+     [g sol]
+     (fn [node]
+       (let [non (gnon g node)]
+         {:length ((sol 0) non)
+          :path   ((sol 1) non)})))
+
+(defn- bellman-ford-impl
   "Calcula el camino más corto desde el vértice i al resto.
    g es el grafo.
    i es el nodo inicial.
@@ -178,14 +190,14 @@ i viene dado por un número."
         nds-count (count nds)
         nds-range (range nds-count)]
     (loop [lprev (init-l-bf g noi)
-           lact  lprev
+           lact  (aclone lprev)
            p (init-p-bf nds-count noi)
            q 1]
       (doseq [j (range-without nds-range noi)]
         (let [k (arg-comp comp #(if (= % j) (default-weight g)  (add (aget lprev %) (gwbo g % j))) nds-range)
               min (add (get lprev k) (gwbo g k j))]
           (if (not (comp (aget lprev j) min))
-            (let []
+            (do
               (aset lact j (add (aget lprev k) (gwbo g k j)))
               (aset p j k))
             (aset lact j (aget lprev j)))))
@@ -210,19 +222,19 @@ i viene dado por un número."
   [make-checker g i stop-function comp add]
   (let [sol (bellman-ford-impl g i stop-function comp add)]
     (if (nil? sol)
-      nil
+      (fn [node] nil)
       (let [ls (vec (sol 0))
             ps (vec (sol 1))
             checker (make-checker g i ls ps)
             paths (vec (map #(vec (reverse (retrieve-path-bf checker g ps %))) (range (count (nodes g)))))]
-        [ls paths])))
-  )
+        (bf-solution-to-fn g [ls paths])))))
 
 (defn bellman-ford
+  "Bellman-Ford standard."
   [g i]
   (bellman-ford-gral make-checker-bf g i stop-fn-bf extended-min extended-add))
 
-(def bf bellman-ford)
+(defalias bf bellman-ford)
 
 ; Floyd-Warshall
 
@@ -263,7 +275,6 @@ i viene dado por un número."
   [g l p]
   (fn [i j]
     (not (= :infty ((l i) j)))))
-
 
 (defn floyd-warshall-impl
   "Aplica el algoritmo Floyd-Warshall al grafo g. Las funciones comp y add son equivalentes a las encontradas en bf-gral"

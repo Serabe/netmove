@@ -184,7 +184,7 @@ i viene dado por un número."
     4.- El nodo inicial tal como está en 3.
   comp es la función de comparación. Ha de ser transitiva. Recibe dos longitudes de caminos en g.
   add es la función de adición de una longitud con un arco. Recibe como primer parámetro la longitud de un camino y como segundo el peso de un arco."
-  [g i stop-function comp add]
+  [g i comp add]
   (let [noi (gnon g i)                  ; noi stands for number of i
         nds (nodes g)
         nds-count (count nds)
@@ -203,7 +203,7 @@ i viene dado por un número."
             (aset lact j (aget lprev j)))))
       (cond
        (comp (reduce #(if (comp %1 %2) %1 %2) (map #(add (aget lprev %) (gwbo g % noi)) (range-without nds-range noi))) 0) nil
-       (stop-function  #(aget lprev %) #(aget lact %) nds-range noi) [lact, p]
+       (every? #(= (aget lprev %) (aget lact %)) nds-range) [lact, p]
        (= q nds-count) nil
        true (recur lact lact p (inc q))))))
 
@@ -212,15 +212,10 @@ i viene dado por un número."
    make-checker es una función que dados el grafo g, el  nodo i, el vector l y el vector p devuelve la función checker de retrieve-path-bf
    g es el grafo.
    i es el nodo inicial.
-   stop-function es un predicado que recibe:
-    1.- Función para obtener el valor previo dado el vértice.
-    2.- Función para obtener el valor actual dado el vértice.
-    3.- La colección de vértices.
-    4.- El nodo inicial tal como está en 3.
-  comp es la función de comparación. Ha de ser transitiva. Recibe dos longitudes de caminos en g.
+   comp es la función de comparación. Ha de ser transitiva. Recibe dos longitudes de caminos en g.
   add es la función de adición de una longitud con un arco. Recibe como primer parámetro la longitud de un camino y como segundo el peso de un arco."
-  [make-checker g i stop-function comp add]
-  (let [sol (bellman-ford-impl g i stop-function comp add)]
+  [make-checker g i comp add]
+  (let [sol (bellman-ford-impl g i comp add)]
     (if (nil? sol)
       (fn [node] nil)
       (let [ls (vec (sol 0))
@@ -232,7 +227,7 @@ i viene dado por un número."
 (defn bellman-ford
   "Bellman-Ford standard."
   [g i]
-  (bellman-ford-gral make-checker-bf g i stop-fn-bf extended-min extended-add))
+  (bellman-ford-gral make-checker-bf g i extended-min extended-add))
 
 (defalias bf bellman-ford)
 

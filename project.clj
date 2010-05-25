@@ -5,5 +5,6 @@
                   "1.1.0"]
                  [org.clojure/clojure-contrib
                   "1.1.0"]
-		 [vijual "0.1.0-SNAPSHOT"]]
+		 [vijual "0.1.0-SNAPSHOT"]
+                 [jline "0.9.94"]]
   :dev-dependencies [[swank-clojure "1.2.1"]])

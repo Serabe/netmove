@@ -40,7 +40,8 @@
 (defalias gw get-weight)
 
 (defn get-node-by-num
-  "Devuelve el i-ésimo nodo de g. Acepta un tercer argumento opcional con el valor devuelto si no existe el nodo."
+  "Devuelve el i-ésimo nodo de g. Acepta un tercer argumento opcional con el
+   valor devuelto si no existe el nodo."
   ([g i]
      ((nodes g) i))
   ([g i not-existant]
@@ -80,7 +81,9 @@
     mtr))
 
 (defn arg-comp
-  "Dada f función, dado coll collección, devuelve el índice k tal que (comp f(coll[k]) f(coll[j])) es verdadero, siempre y cuando comp represente una relación transitiva."
+  "Dada f función, dado coll collección, devuelve el índice k
+   tal que (comp f(coll[k]) f(coll[j])) es verdadero, siempre
+   y cuando comp represente una relación transitiva."
   [comp f coll]
   (let [arr (vec coll)
         n (.length arr)
@@ -98,12 +101,14 @@
   (remove (set args) rng))
 
 (defn join-paths
-  "Dados dos caminos, p y s, tal que el vértice final de p es el inicial de s, devuelve el camino unión."
+  "Dados dos caminos, p y s, tal que el vértice final de p es el inicial de s,
+   devuelve el camino unión."
   [p s]
   (into (rest s) (reverse p)))
 
 (defn extended-min
-  "Comparación equivalente a <, pero añadiendo los casos correspondientes para poder manejar :infty como marca de infinito"
+  "Comparación equivalente a <, pero añadiendo los casos correspondientes para
+   poder manejar :infty como marca de infinito"
   [p q]
   (cond
    (= p :infty) false ; Si p es infinito, p no puede ser estrictamente
@@ -114,7 +119,8 @@
   )
 
 (defn extended-add
-  "Adición equivalente a la suma, pero capaz de manejar infinitos (sólamente infinitos positivos)"
+  "Adición equivalente a la suma, pero capaz de manejar infinitos
+  (sólamente infinitos positivos)"
   [l c]
   (if (or (= l :infty) (= c :infty))
     :infty
@@ -128,7 +134,8 @@
   (every? #(= (prev %) (act %)) vs))
 
 (defn make-checker-bf
-  "Crea un comprobador general. Simplemente comprueba que la longitud del camino no sea :infty."
+  "Crea un comprobador general. Simplemente comprueba que la longitud
+   del camino no sea :infty."
   [g i l p]
   (fn [path]
     (not (= :infty (l (gnon g (first path))))))) ;first porque el
@@ -136,7 +143,7 @@
 
 (defn- init-l-bf
   "Inicializa el vector l del algoritmo Bellman-Ford para el grafo g y el vértice i.
-i viene dado por un número."
+   i viene dado por un número."
   [g i]
   (let [l (make-array Object (count (nodes g)))]
     (doseq [n (range (count (nodes g)))]
@@ -146,7 +153,8 @@ i viene dado por un número."
     l))
 
 (defn- init-p-bf
-  "Inicializa el vector p del algoritmo Bellman-Ford de dimensión dim, cuyo vértice inicial es i (dado por el índice)."
+  "Inicializa el vector p del algoritmo Bellman-Ford de dimensión dim,
+   cuyo vértice inicial es i (dado por el índice)."
   [dim i]
   (let [p (make-array Integer/TYPE dim)]
     (doseq [j (range dim)]
@@ -166,7 +174,9 @@ i viene dado por un número."
          []))))
 
 (defn bf-solution-to-fn
-     "Dado un grafo y la solución de bf-gral, devuelve una función que espera un nodo y devuelve el camino óptimo junto con su longitud. Además, la solución no es nula."
+  "Dado un grafo y la solución de bf-gral, devuelve una función que
+   espera un nodo y devuelve el camino óptimo junto con su longitud.
+   Además, la solución no es nula."
      [g sol]
      (fn [node]
        (let [non (gnon g node)]
@@ -182,8 +192,11 @@ i viene dado por un número."
     2.- Función para obtener el valor actual dado el vértice.
     3.- La colección de vértices.
     4.- El nodo inicial tal como está en 3.
-  comp es la función de comparación. Ha de ser transitiva. Recibe dos longitudes de caminos en g.
-  add es la función de adición de una longitud con un arco. Recibe como primer parámetro la longitud de un camino y como segundo el peso de un arco."
+  comp es la función de comparación. Ha de ser transitiva.
+    Recibe dos longitudes de caminos en g.
+  add es la función de adición de una longitud con un arco.
+    Recibe como primer parámetro la longitud de un camino y como
+    segundo el peso de un arco."
   [g i comp add]
   (let [noi (gnon g i)                  ; noi stands for number of i
         nds (nodes g)
@@ -209,11 +222,15 @@ i viene dado por un número."
 
 (defn bellman-ford-gral
   "Calcula el camino más corto desde el vértice i al resto.
-   make-checker es una función que dados el grafo g, el  nodo i, el vector l y el vector p devuelve la función checker de retrieve-path-bf
+   make-checker es una función que dados el grafo g, el  nodo i, el vector
+     l y el vector p devuelve la función checker de retrieve-path-bf
    g es el grafo.
    i es el nodo inicial.
-   comp es la función de comparación. Ha de ser transitiva. Recibe dos longitudes de caminos en g.
-  add es la función de adición de una longitud con un arco. Recibe como primer parámetro la longitud de un camino y como segundo el peso de un arco."
+   comp es la función de comparación. Ha de ser transitiva. Recibe dos
+     longitudes de caminos en g.
+   add es la función de adición de una longitud con un arco. Recibe como
+     primer parámetro la longitud de un camino y como segundo el peso de
+     un arco."
   [make-checker g i comp add]
   (let [sol (bellman-ford-impl g i comp add)]
     (if (nil? sol)
@@ -221,7 +238,8 @@ i viene dado por un número."
       (let [ls (vec (sol 0))
             ps (vec (sol 1))
             checker (make-checker g i ls ps)
-            paths (vec (map #(vec (reverse (retrieve-path-bf checker g ps %))) (range (count (nodes g)))))]
+            paths (vec (map #(vec (reverse (retrieve-path-bf checker g ps %)))
+                            (range (count (nodes g)))))]
         (bf-solution-to-fn g [ls paths])))))
 
 (defn bellman-ford
@@ -252,14 +270,17 @@ i viene dado por un número."
 (defn- retrieve-path-fw
   "Devuelve el camino en g de i a j especificado por el array p.
    i y j están especificados por un ordinal.
-   Se añade un parámetro opcional al principio. Éste ha de ser una función que dados los vértices i y j, devuelva true si el camino existe y false si no."
+   Se añade un parámetro opcional al principio. Éste ha de ser una
+     función que dados los vértices i y j, devuelva true si el camino
+     existe y false si no."
   ([g p i j]
      (let [k ((p i) j)]
         (if (= i k)
           (if (= i j)
             [(gnbn g i)]
             (vec (list (gnbn g i) (gnbn g j))))
-          (vec (join-paths (retrieve-path-fw g p i k) (retrieve-path-fw g p k j))))))
+          (vec (join-paths (retrieve-path-fw g p i k)
+                           (retrieve-path-fw g p k j))))))
   ([checker g p i j]
      (let [path (retrieve-path-fw g p i j)]
        (if (checker path)
@@ -267,10 +288,12 @@ i viene dado por un número."
          []))))
 
 (defn make-checker-fw
-  "Crea un comprobador general. Simplemente comprueba que (l ij) no sea :infty."
+  "Crea un comprobador general. Simplemente comprueba que
+   (l ij) no sea :infty."
   [g l p]
   (fn [path]
-    (not (= :infty ((l (gnon g (last path))) (gnon g (first path)))))))
+    (not (= :infty ((l (gnon g (last path)))
+                    (gnon g (first path)))))))
 
 (defn fw-solution-to-fn
   [g sol]
@@ -281,7 +304,9 @@ i viene dado por un número."
        :path   (((sol 1) noi) noj)})))
 
 (defn- floyd-warshall-impl
-  "Aplica el algoritmo Floyd-Warshall al grafo g. Las funciones comp y add son equivalentes a las encontradas en bf-gral"
+  "Aplica el algoritmo Floyd-Warshall al grafo g.
+   Las funciones comp y add son equivalentes a las
+   encontradas en bf-gral"
   [g comp add]
   (let [nds (nodes g)
         nds-cnt (count nds)
@@ -290,8 +315,9 @@ i viene dado por un número."
     (loop [l (init-l-fw g)
            p (init-p-fw g)
            k 0]
-      (if (some #(comp (add (aget l % k) (aget l k %)) 0) (nds-range-without k)) ;condición de parada
-        (fn [i j] nil)
+      (if (some #(comp (add (aget l % k) (aget l k %)) 0)
+                (nds-range-without k)) ;condición de parada
+        nil
         (do
           (doseq [i (nds-range-without k)]
             (doseq [j (nds-range-without k i)]
@@ -315,7 +341,11 @@ i viene dado por un número."
             p         (vec (map vec (vec (sol 1))))
             nds-range (range (count (nodes g)))
             checker   (make-checker g l p)
-            paths     (vec (for [x nds-range] (vec (for [y nds-range] (vec (retrieve-path-fw checker g p x y))))))]
+            paths     (vec
+                       (for [x nds-range]
+                         (vec (for [y nds-range]
+                                (vec
+                                 (retrieve-path-fw checker g p x y))))))]
         (fw-solution-to-fn g [l paths])))))
 
 (defn floyd-warshall

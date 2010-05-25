@@ -58,14 +58,14 @@
                  'E {}
                  'F {'D -3}}
                 :infty))
-(comment 
-  (bf g1 'A)
-  (bf g2 'A)
-  (bf g3 'A)
-  (floyd-warshall g1)
-  (floyd-warshall g2)
-  (floyd-warshall g3)
-  )
+
+(def sb1 (bf g1 'A))
+(def sb2 (bf g2 'A))
+(def sb3 (bf g3 'A))
+
+(def sf1 (floyd-warshall g1))
+(def sf2 (floyd-warshall g2))
+(def sf3 (floyd-warshall g3))
 
 (def road-example (struct weighted-graph
                           ['A 'B 'C 'D 'E 'F 'G 'H 'I]

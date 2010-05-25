@@ -89,9 +89,9 @@
                            'H {'I 3.8}}
                           0))
 
-(comment 
-  (let [sol  (bellman-ford-gral make-checker-bf road-example 'A stop-fn-bf > min)
-        h    (last (sol 0))
-        path (last (sol 1))]
+(defn bf-road []
+  (let [sol  (bellman-ford-gral make-checker-bf road-example 'A > min)
+        h    (:length (sol 'I))
+        path (:path (sol 'I))]
     (str "La altura máxima es " h " y el camino es " (apply str (interpose ", " path)) "."))
   )
